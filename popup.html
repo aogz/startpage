@@ -1,0 +1,93 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Popup</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Participants: <span id="participant-count">1</span></h1>
+        <div class="transcripts"></div>
+        <button id="start-btn">Start</button>
+        <button id="stop-btn">Stop</button>
+    </div>
+    
+    <script>
+        const transcriptsContainer = document.querySelector('.transcripts');
+        const startBtn = document.querySelector('#start-btn');
+        const stopBtn = document.querySelector('#stop-btn');
+        let recognizing = false;
+        let participantCount = 1;
+        let recognition;
+        function sendSlackMessage(text) {
+            const slackWebhookUrl = "https://hooks.slack.com/services/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";
+            const payload = {
+                text,
+            };
+            
+            fetch(slackWebhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+        
+        function startSpeechRecognition() {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = function () {
+                recognizing = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            };
+
+            recognition.onend = function () {
+                recognizing = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            };
+
+            recognition.onresult = function (event) {
+                const transcript = event.results[event.results.length - 1][0].transcript;
+                const confidence = event.results[event.results.length - 1][0].confidence;
+                const transcriptElement = document.createElement('div');
+                transcriptElement.textContent = `${transcript} (${confidence})`;
+                transcriptsContainer.appendChild(transcriptElement);
+            }
+            
+            // start recognition
+            recognition.start();
+        }
+
+        function stopSpeechRecognition() {
+            recognition.stop();
+            recognizing = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        startBtn.addEventListener('click', startSpeechRecognition);
+        stopBtn.addEventListener('click', stopSpeechRecognition);
+
+        function updateParticipantCount(count) {
+            const participantCountElement = document.querySelector('#participant-count');
+            participantCountElement.textContent = count;
+        }
+
+        surflyExtension.surflySession.onMessage.addListener((message, sender) => {
+            if (message.event_type === 'participant_joined') {
+                participantCount++;
+                updateParticipantCount(participantCount);
+                if (participantCount === 2) {
+                    startSpeechRecognition();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

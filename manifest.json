@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Team huddles: Standup Template",
+  "version": "1.0",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
